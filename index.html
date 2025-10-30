@@ -384,6 +384,170 @@
         .zoom-btn:hover {
             background: #0d1a4a;
         }
+
+        /* 提醒窗口样式 */
+        .alert-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 350px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            backdrop-filter: blur(10px);
+            border: 2px solid #ff6b6b;
+            transition: all 0.3s ease;
+            max-height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .alert-panel.minimized {
+            width: 40px;
+            height: 40px;
+            overflow: hidden;
+        }
+
+        .alert-panel.minimized .alert-header,
+        .alert-panel.minimized .alert-controls,
+        .alert-panel.minimized .alert-content {
+            display: none;
+        }
+
+        .alert-header {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px 8px 0 0;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .alert-controls {
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .threshold-input {
+            width: 60px;
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .threshold-label {
+            font-size: 0.8rem;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .alert-content {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 300px;
+            padding: 10px;
+        }
+
+        .alert-item {
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            background: #fff;
+            border-radius: 6px;
+            border-left: 4px solid #ff6b6b;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease;
+        }
+
+        .alert-item.new {
+            background: #fff9e6;
+            border-left-color: #ffc107;
+        }
+
+        .alert-currency {
+            font-weight: bold;
+            color: #1a2a6c;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .alert-currency:hover {
+            text-decoration: underline;
+        }
+
+        .alert-change {
+            font-weight: bold;
+            margin: 3px 0;
+        }
+
+        .alert-time {
+            font-size: 0.7rem;
+            color: #999;
+        }
+
+        .alert-minimize {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 2px 8px;
+            font-size: 1rem;
+        }
+
+        .alert-minimize:hover {
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+        }
+
+        .alert-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ff6b6b;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .alert-history-count {
+            font-size: 0.7rem;
+            color: #666;
+            text-align: center;
+            padding: 5px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .blinking {
+            animation: blink 1s infinite;
+        }
         
         @media (max-width: 1200px) {
             .tables-container {
@@ -418,10 +582,43 @@
             .currency-table td {
                 padding: 5px 4px;
             }
+
+            .alert-panel {
+                width: 300px;
+                left: 10px;
+                top: 10px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- 提醒窗口 -->
+    <div class="alert-panel" id="alertPanel">
+        <div class="alert-header">
+            <span>📈 涨幅提醒</span>
+            <button class="alert-minimize" id="minimizeAlert">−</button>
+        </div>
+        <div class="alert-controls">
+            <div class="threshold-control">
+                <span class="threshold-label">3分钟:</span>
+                <input type="number" id="threeMinThreshold" class="threshold-input" value="7" min="0" max="100" step="0.1">
+                <span class="threshold-label">%</span>
+            </div>
+            <div class="threshold-control">
+                <span class="threshold-label">15分钟:</span>
+                <input type="number" id="fifteenMinThreshold" class="threshold-input" value="7" min="0" max="100" step="0.1">
+                <span class="threshold-label">%</span>
+            </div>
+            <button id="testAlert" style="margin-left: auto; padding: 4px 8px; font-size: 0.7rem;">测试铃声</button>
+        </div>
+        <div class="alert-content" id="alertContent">
+            <div class="alert-item">
+                <div>等待提醒...</div>
+            </div>
+        </div>
+        <div class="alert-history-count" id="alertHistoryCount">今日提醒: 0</div>
+    </div>
+
     <div class="container">
         <header>
             <h1>币种实时监控系统</h1>
@@ -564,6 +761,11 @@
         <button class="zoom-btn" id="zoom-reset">↺</button>
     </div>
 
+    <!-- 音频元素 -->
+    <audio id="alertSound" preload="auto">
+        <source src="https://er-sycdn.kuwo.cn/43e24103b07cc05dd3ce6d25aa8374f8/69033ef1/resource/30106/trackmedia/M500000940im4R2Oo8.mp3?bitrate=128&from=vip" type="audio/mpeg">
+    </audio>
+
     <script>
         // 全局变量
         let allCurrencies = [];
@@ -585,6 +787,12 @@
         let currentZoom = 1;
         let currencyRefreshCountdown = CURRENCY_REFRESH_MINUTES * 60; // 10分钟倒计时
         
+        // 提醒相关变量
+        let alertHistory = [];
+        let alertSound = null;
+        let soundTimeout = null;
+        const ALERT_RETENTION_HOURS = 24; // 提醒记录保留24小时
+
         // 页面加载完成后执行
         document.addEventListener('DOMContentLoaded', function() {
             // 绑定事件监听器
@@ -597,6 +805,18 @@
             document.getElementById('zoom-out').addEventListener('click', zoomOut);
             document.getElementById('zoom-reset').addEventListener('click', zoomReset);
             
+            // 绑定提醒控制
+            document.getElementById('minimizeAlert').addEventListener('click', toggleAlertPanel);
+            document.getElementById('testAlert').addEventListener('click', testAlertSound);
+            document.getElementById('threeMinThreshold').addEventListener('change', updateThresholds);
+            document.getElementById('fifteenMinThreshold').addEventListener('change', updateThresholds);
+            
+            // 初始化音频
+            initializeAlertSound();
+            
+            // 初始化可拖拽提醒窗口
+            initializeDraggableAlert();
+            
             // 尝试从localStorage恢复状态
             restoreStateFromStorage();
             
@@ -605,7 +825,278 @@
             
             // 启动币种刷新倒计时
             startCurrencyRefreshCountdown();
+            
+            // 更新提醒历史显示
+            updateAlertHistoryCount();
         });
+
+        // 初始化音频
+        function initializeAlertSound() {
+            alertSound = document.getElementById('alertSound');
+            alertSound.volume = 1.0; // 最大音量
+        }
+
+        // 测试铃声
+        function testAlertSound() {
+            playAlertSound();
+            addLog("测试铃声播放");
+        }
+
+        // 播放提醒铃声
+        function playAlertSound() {
+            if (alertSound) {
+                // 停止当前播放
+                alertSound.pause();
+                alertSound.currentTime = 0;
+                
+                // 开始播放
+                alertSound.play().catch(e => {
+                    console.error('播放铃声失败:', e);
+                    addLog('播放铃声失败，请检查音频URL');
+                });
+                
+                // 30秒后停止
+                clearTimeout(soundTimeout);
+                soundTimeout = setTimeout(() => {
+                    if (!alertSound.paused) {
+                        alertSound.pause();
+                        alertSound.currentTime = 0;
+                    }
+                }, 30000);
+            }
+        }
+
+        // 更新阈值
+        function updateThresholds() {
+            addLog(`提醒阈值更新: 3分钟=${getThreeMinThreshold()}%, 15分钟=${getFifteenMinThreshold()}%`);
+        }
+
+        function getThreeMinThreshold() {
+            return parseFloat(document.getElementById('threeMinThreshold').value) || 7;
+        }
+
+        function getFifteenMinThreshold() {
+            return parseFloat(document.getElementById('fifteenMinThreshold').value) || 7;
+        }
+
+        // 切换提醒面板显示
+        function toggleAlertPanel() {
+            const panel = document.getElementById('alertPanel');
+            panel.classList.toggle('minimized');
+            
+            if (panel.classList.contains('minimized')) {
+                this.innerHTML = '+';
+            } else {
+                this.innerHTML = '−';
+            }
+        }
+
+        // 初始化可拖拽提醒窗口
+        function initializeDraggableAlert() {
+            const panel = document.getElementById('alertPanel');
+            const header = document.querySelector('.alert-header');
+            let isDragging = false;
+            let currentX;
+            let currentY;
+            let initialX;
+            let initialY;
+            let xOffset = 0;
+            let yOffset = 0;
+
+            header.addEventListener("mousedown", dragStart);
+            document.addEventListener("mousemove", drag);
+            document.addEventListener("mouseup", dragEnd);
+
+            function dragStart(e) {
+                if (panel.classList.contains('minimized')) return;
+                
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+                
+                if (e.target === header) {
+                    isDragging = true;
+                }
+            }
+
+            function drag(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                    
+                    xOffset = currentX;
+                    yOffset = currentY;
+                    
+                    setTranslate(currentX, currentY, panel);
+                }
+            }
+
+            function setTranslate(xPos, yPos, el) {
+                el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+            }
+
+            function dragEnd(e) {
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+            }
+        }
+
+        // 检查涨幅提醒
+        function checkPriceAlerts() {
+            const threeMinThreshold = getThreeMinThreshold();
+            const fifteenMinThreshold = getFifteenMinThreshold();
+            let hasAlert = false;
+            const currentAlerts = [];
+
+            // 检查前20名币种
+            const top20Currencies = allCurrencies.slice(0, TOP_RANK_COUNT);
+            
+            top20Currencies.forEach(currency => {
+                let alertType = null;
+                let changeValue = 0;
+                
+                if (currency.threeMinChange >= threeMinThreshold) {
+                    alertType = '3分钟';
+                    changeValue = currency.threeMinChange;
+                } else if (currency.fifteenMinChange >= fifteenMinThreshold) {
+                    alertType = '15分钟';
+                    changeValue = currency.fifteenMinChange;
+                }
+                
+                if (alertType) {
+                    hasAlert = true;
+                    currentAlerts.push({
+                        currency: currency,
+                        type: alertType,
+                        change: changeValue,
+                        timestamp: new Date()
+                    });
+                }
+            });
+
+            // 处理提醒
+            if (hasAlert) {
+                // 播放铃声
+                playAlertSound();
+                
+                // 添加提醒记录
+                currentAlerts.forEach(alert => {
+                    addAlertToHistory(alert);
+                });
+                
+                // 更新显示
+                updateAlertDisplay();
+                
+                addLog(`检测到 ${currentAlerts.length} 个币种涨幅超过阈值`);
+            }
+        }
+
+        // 添加提醒到历史记录
+        function addAlertToHistory(alert) {
+            const alertRecord = {
+                id: Date.now() + Math.random(),
+                symbol: alert.currency.symbol,
+                alphaId: alert.currency.alphaId,
+                currencyLink: alert.currency.currencyLink,
+                type: alert.type,
+                change: alert.change,
+                timestamp: alert.timestamp,
+                isNew: true
+            };
+            
+            // 添加到历史记录开头
+            alertHistory.unshift(alertRecord);
+            
+            // 清理超过24小时的记录
+            const retentionTime = Date.now() - ALERT_RETENTION_HOURS * 60 * 60 * 1000;
+            alertHistory = alertHistory.filter(record => record.timestamp >= retentionTime);
+            
+            // 保存到localStorage
+            saveAlertsToStorage();
+        }
+
+        // 更新提醒显示
+        function updateAlertDisplay() {
+            const alertContent = document.getElementById('alertContent');
+            alertContent.innerHTML = '';
+            
+            // 显示最新的10条提醒
+            const recentAlerts = alertHistory.slice(0, 10);
+            
+            if (recentAlerts.length === 0) {
+                alertContent.innerHTML = '<div class="alert-item">等待提醒...</div>';
+                return;
+            }
+            
+            recentAlerts.forEach(alert => {
+                const alertItem = document.createElement('div');
+                alertItem.className = `alert-item ${alert.isNew ? 'new' : ''}`;
+                
+                const changeClass = alert.change >= 0 ? 'positive' : 'negative';
+                const changeSign = alert.change >= 0 ? '+' : '';
+                
+                alertItem.innerHTML = `
+                    <div>
+                        <a href="${alert.currencyLink}" target="_blank" class="alert-currency">${alert.symbol}</a>
+                        <div class="alert-change ${changeClass}">${alert.type}涨幅: ${changeSign}${alert.change.toFixed(4)}%</div>
+                        <div class="alert-time">${alert.timestamp.toLocaleTimeString()}</div>
+                    </div>
+                `;
+                
+                alertContent.appendChild(alertItem);
+                
+                // 标记为已读
+                setTimeout(() => {
+                    alert.isNew = false;
+                }, 5000);
+            });
+            
+            updateAlertHistoryCount();
+        }
+
+        // 更新提醒历史计数
+        function updateAlertHistoryCount() {
+            const today = new Date().toDateString();
+            const todayAlerts = alertHistory.filter(alert => 
+                alert.timestamp.toDateString() === today
+            );
+            document.getElementById('alertHistoryCount').textContent = `今日提醒: ${todayAlerts.length}`;
+        }
+
+        // 保存提醒到localStorage
+        function saveAlertsToStorage() {
+            try {
+                localStorage.setItem('alertHistory', JSON.stringify(alertHistory));
+            } catch (error) {
+                console.error('保存提醒记录失败:', error);
+            }
+        }
+
+        // 从localStorage恢复提醒记录
+        function restoreAlertsFromStorage() {
+            try {
+                const savedAlerts = localStorage.getItem('alertHistory');
+                if (savedAlerts) {
+                    const alerts = JSON.parse(savedAlerts);
+                    // 转换时间戳为Date对象
+                    alertHistory = alerts.map(alert => ({
+                        ...alert,
+                        timestamp: new Date(alert.timestamp),
+                        isNew: false
+                    }));
+                    
+                    // 清理过期记录
+                    const retentionTime = Date.now() - ALERT_RETENTION_HOURS * 60 * 60 * 1000;
+                    alertHistory = alertHistory.filter(record => record.timestamp >= retentionTime);
+                    
+                    addLog(`恢复 ${alertHistory.length} 条提醒记录`);
+                    updateAlertDisplay();
+                }
+            } catch (error) {
+                console.error('恢复提醒记录失败:', error);
+            }
+        }
 
         // 从localStorage恢复状态
         function restoreStateFromStorage() {
@@ -638,6 +1129,10 @@
                         fifteenMinuteHistory = state.fifteenMinuteHistory;
                     }
                 }
+
+                // 恢复提醒记录
+                restoreAlertsFromStorage();
+                
             } catch (error) {
                 console.error('恢复状态失败:', error);
                 addLog('恢复历史状态失败，将重新开始');
@@ -1460,6 +1955,9 @@
                 
                 // 记录上榜历史
                 recordRankingHistory();
+                
+                // 检查涨幅提醒
+                checkPriceAlerts();
                 
                 // 更新显示
                 renderCurrencyTable();
