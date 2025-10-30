@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>币种实时监控系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+            min-height: 100vh;
+            padding: 10px;
+            transform-origin: top left;
+            transition: transform 0.3s ease;
+        }
+        
+        .container {
+            max-width: 2000px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+            opacity: 0.9;
+        }
+        
+        .tables-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stats-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .stats-number {
+            font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+            font-weight: bold;
+            color: #1a2a6c;
+            margin: 5px 0;
+        }
+        
+        .stats-label {
+            font-size: clamp(0.8rem, 1.3vw, 0.9rem);
+            color: #666;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 20px;
+            font-size: clamp(0.8rem, 1.3vw, 0.9rem);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: bold;
+        }
+        
+        #start-btn {
+            background: #2e7d32;
+            color: white;
+        }
+        
+        #start-btn:hover {
+            background: #1b5e20;
+        }
+        
+        #stop-btn {
+            background: #c62828;
+            color: white;
+        }
+        
+        #stop-btn:hover {
+            background: #b71c1c;
+        }
+        
+        #stop-btn:disabled, #start-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+            font-weight: bold;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #c62828;
+        }
+        
+        .status-dot.active {
+            background: #2e7d32;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .currency-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            overflow-x: auto;
+        }
+        
+        .currency-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: clamp(0.75rem, 1.2vw, 0.85rem);
+        }
+        
+        .currency-table th {
+            background: #1a2a6c;
+            color: white;
+            padding: 8px 6px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+            font-size: clamp(0.75rem, 1.2vw, 0.85rem);
+            font-weight: 600;
+        }
+        
+        .currency-table th:hover {
+            background: #0d1a4a;
+        }
+        
+        .currency-table td {
+            padding: 6px 5px;
+            border-bottom: 1px solid #eee;
+            line-height: 1.2;
+        }
+        
+        .currency-table tr:hover {
+            background: rgba(26, 42, 108, 0.05);
+        }
+        
+        .currency-link {
+            color: #1a2a6c;
+            text-decoration: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+            font-size: clamp(0.75rem, 1.2vw, 0.85rem);
+        }
+        
+        .currency-link:hover {
+            color: #0d1a4a;
+            text-decoration: underline;
+        }
+        
+        .positive {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        
+        .negative {
+            color: #c62828;
+            font-weight: bold;
+        }
+        
+        /* 修改箭头样式 */
+        .change-indicator {
+            margin-left: 3px;
+            font-weight: bold;
+        }
+        
+        .change-indicator.up {
+            color: #2e7d32;
+            font-size: 1.2em; /* 更大的上升箭头 */
+        }
+        
+        .change-indicator.down {
+            color: #c62828;
+            font-size: 0.9em; /* 更小的下降箭头 */
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-size: clamp(0.9rem, 1.5vw, 1rem);
+        }
+        
+        .spinner {
+            border: 4px solid rgba(26, 42, 108, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #1a2a6c;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: #b21f1f;
+            font-size: 0.95rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: clamp(0.7rem, 1.1vw, 0.8rem);
+        }
+        
+        .last-update {
+            margin-top: 10px;
+            font-size: clamp(0.7rem, 1.1vw, 0.8rem);
+            color: #666;
+            text-align: right;
+        }
+        
+        .api-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: clamp(0.7rem, 1.1vw, 0.8rem);
+            color: #666;
+        }
+        
+        .api-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #c62828;
+        }
+        
+        .api-status-dot.connected {
+            background: #2e7d32;
+        }
+        
+        .log-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .log-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #1a2a6c;
+            font-size: clamp(0.8rem, 1.3vw, 0.9rem);
+        }
+        
+        .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid #eee;
+            font-size: clamp(0.7rem, 1.1vw, 0.8rem);
+            color: #666;
+            line-height: 1.3;
+        }
+        
+        .log-time {
+            color: #999;
+            font-size: clamp(0.65rem, 1vw, 0.75rem);
+        }
+        
+        .section-title {
+            font-size: clamp(1rem, 2vw, 1.3rem);
+            font-weight: bold;
+            color: #1a2a6c;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .zoom-controls {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+        
+        .zoom-btn {
+            width: 35px;
+            height: 35px;
+            border: none;
+            border-radius: 50%;
+            background: #1a2a6c;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+        
+        .zoom-btn:hover {
+            background: #0d1a4a;
+        }
+        
+        @media (max-width: 1200px) {
+            .tables-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 8px;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .status-indicator {
+                margin-left: 0;
+            }
+            
+            .zoom-controls {
+                bottom: 8px;
+                right: 8px;
+            }
+            
+            .currency-table th,
+            .currency-table td {
+                padding: 5px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>币种实时监控系统</h1>
+            <p class="subtitle">实时追踪币种价格变化，计算涨跌幅和上榜次数</p>
+        </header>
+        
+        <div class="tables-container">
+            <div class="currency-container">
+                <div class="section-title">实时涨幅排行榜</div>
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>正在初始化币种数据...</p>
+                </div>
+                
+                <div id="error" class="error" style="display: none;">
+                    <h3>数据加载失败</h3>
+                    <p id="error-message">无法从API获取数据，请检查网络连接或稍后重试。</p>
+                    <button onclick="initializeData()">
+                        <i class="fas fa-sync-alt"></i>
+                        重新加载
+                    </button>
+                </div>
+                
+                <div id="currency-content" style="display: none;">
+                    <table class="currency-table">
+                        <thead>
+                            <tr>
+                                <th>排名</th>
+                                <th>币种名称</th>
+                                <th>当前价格</th>
+                                <th>1分钟涨幅</th>
+                                <th>3分钟涨幅</th>
+                                <th>成交笔数</th>
+                            </tr>
+                        </thead>
+                        <tbody id="currency-table-body">
+                            <!-- 币种数据将通过JavaScript动态生成 -->
+                        </tbody>
+                    </table>
+                    
+                    <div class="last-update">
+                        最后更新: <span id="update-time">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="currency-container">
+                <div class="section-title">15分钟上榜统计</div>
+                <div id="ranking-content" style="display: none;">
+                    <table class="currency-table">
+                        <thead>
+                            <tr>
+                                <th>排名</th>
+                                <th>币种名称</th>
+                                <th>15分钟涨跌幅</th>
+                                <th>上榜次数</th>
+                                <th>成交笔数总和</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ranking-table-body">
+                            <!-- 上榜统计数据将通过JavaScript动态生成 -->
+                        </tbody>
+                    </table>
+                    
+                    <div class="last-update">
+                        统计时间: <span id="ranking-update-time">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="stats-card">
+                <h2>有交易对币种</h2>
+                <div id="trading-pairs-count" class="stats-number">--</div>
+                <p class="stats-label">当前有交易对的币种数量</p>
+            </div>
+            
+            <div class="stats-card">
+                <h2>更新频率</h2>
+                <div class="stats-number">5秒</div>
+                <p class="stats-label">数据更新间隔</p>
+            </div>
+            
+            <div class="stats-card">
+                <h2>数据存储</h2>
+                <div class="stats-number">30分钟</div>
+                <p class="stats-label">价格历史数据存储时长</p>
+            </div>
+            
+            <div class="stats-card">
+                <h2>币种更新</h2>
+                <div id="currency-refresh-countdown" class="stats-number">10:00</div>
+                <p class="stats-label">下次币种列表更新</p>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-buttons">
+                <button id="start-btn">
+                    <i class="fas fa-play"></i>
+                    开始监控
+                </button>
+                <button id="stop-btn" disabled>
+                    <i class="fas fa-stop"></i>
+                    停止监控
+                </button>
+                <button id="refresh-currencies-btn">
+                    <i class="fas fa-sync-alt"></i>
+                    立即更新币种
+                </button>
+            </div>
+            
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span id="status-text">监控已停止</span>
+            </div>
+            
+            <div class="api-status">
+                <div class="api-status-dot" id="api-status-dot"></div>
+                <span id="api-status-text">API状态: 未连接</span>
+            </div>
+        </div>
+
+        <div class="log-container">
+            <div class="log-title">程序运行日志</div>
+            <div id="log-content">
+                <!-- 日志内容将通过JavaScript动态生成 -->
+            </div>
+        </div>
+        
+        <footer>
+            <p>数据来源: Binance API | 实时监控系统</p>
+        </footer>
+    </div>
+
+    <div class="zoom-controls">
+        <button class="zoom-btn" id="zoom-out">-</button>
+        <button class="zoom-btn" id="zoom-in">+</button>
+        <button class="zoom-btn" id="zoom-reset">↺</button>
+    </div>
+
+    <script>
+        // 全局变量
+        let allCurrencies = [];
+        let tradingPairsData = {};
+        let priceHistory = {};
+        let rankingHistory = []; // 存储15分钟内的上榜记录
+        let fifteenMinuteHistory = {}; // 存储15分钟前的价格数据
+        let previousThreeMinChanges = {}; // 存储上一次的3分钟涨幅
+        let previousFifteenMinChanges = {}; // 存储上一次的15分钟涨幅
+        let monitoringInterval = null;
+        let currencyRefreshInterval = null;
+        let isMonitoring = false;
+        let apiRetryCount = 0;
+        const MAX_RETRY_DISPLAY = 10;
+        const DATA_RETENTION_MINUTES = 30;
+        const TOP_RANK_COUNT = 20;
+        const RANKING_WINDOW_MINUTES = 15; // 上榜统计时间窗口
+        const CURRENCY_REFRESH_MINUTES = 10; // 币种列表更新间隔
+        let currentZoom = 1;
+        let currencyRefreshCountdown = CURRENCY_REFRESH_MINUTES * 60; // 10分钟倒计时
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定事件监听器
+            document.getElementById('start-btn').addEventListener('click', startMonitoring);
+            document.getElementById('stop-btn').addEventListener('click', stopMonitoring);
+            document.getElementById('refresh-currencies-btn').addEventListener('click', refreshCurrencies);
+            
+            // 绑定缩放控制
+            document.getElementById('zoom-in').addEventListener('click', zoomIn);
+            document.getElementById('zoom-out').addEventListener('click', zoomOut);
+            document.getElementById('zoom-reset').addEventListener('click', zoomReset);
+            
+            // 尝试从localStorage恢复状态
+            restoreStateFromStorage();
+            
+            // 初始化数据
+            initializeData();
+            
+            // 启动币种刷新倒计时
+            startCurrencyRefreshCountdown();
+        });
+
+        // 从localStorage恢复状态
+        function restoreStateFromStorage() {
+            try {
+                const savedState = localStorage.getItem('monitoringState');
+                if (savedState) {
+                    const state = JSON.parse(savedState);
+                    
+                    // 恢复监控状态
+                    if (state.isMonitoring) {
+                        setTimeout(() => {
+                            startMonitoring();
+                            addLog("检测到上次监控状态，已自动恢复监控");
+                        }, 1000);
+                    }
+                    
+                    // 恢复排行榜历史
+                    if (state.rankingHistory && state.rankingHistory.length > 0) {
+                        rankingHistory = state.rankingHistory;
+                        addLog(`已恢复排行榜历史数据，共${rankingHistory.length}条记录`);
+                    }
+                    
+                    // 恢复价格历史
+                    if (state.priceHistory) {
+                        priceHistory = state.priceHistory;
+                    }
+                    
+                    // 恢复15分钟历史
+                    if (state.fifteenMinuteHistory) {
+                        fifteenMinuteHistory = state.fifteenMinuteHistory;
+                    }
+                }
+            } catch (error) {
+                console.error('恢复状态失败:', error);
+                addLog('恢复历史状态失败，将重新开始');
+            }
+        }
+
+        // 保存状态到localStorage
+        function saveStateToStorage() {
+            try {
+                const state = {
+                    isMonitoring: isMonitoring,
+                    rankingHistory: rankingHistory,
+                    priceHistory: priceHistory,
+                    fifteenMinuteHistory: fifteenMinuteHistory,
+                    lastSaved: Date.now()
+                };
+                localStorage.setItem('monitoringState', JSON.stringify(state));
+            } catch (error) {
+                console.error('保存状态失败:', error);
+            }
+        }
+
+        // 缩放功能
+        function zoomIn() {
+            currentZoom = Math.min(currentZoom + 0.1, 1.5);
+            updateZoom();
+        }
+
+        function zoomOut() {
+            currentZoom = Math.max(currentZoom - 0.1, 0.5);
+            updateZoom();
+        }
+
+        function zoomReset() {
+            currentZoom = 1;
+            updateZoom();
+        }
+
+        function updateZoom() {
+            document.body.style.transform = `scale(${currentZoom})`;
+        }
+
+        // 币种刷新倒计时
+        function startCurrencyRefreshCountdown() {
+            setInterval(() => {
+                currencyRefreshCountdown--;
+                if (currencyRefreshCountdown <= 0) {
+                    currencyRefreshCountdown = CURRENCY_REFRESH_MINUTES * 60;
+                    refreshCurrencies();
+                }
+                updateCurrencyRefreshDisplay();
+            }, 1000);
+        }
+
+        function updateCurrencyRefreshDisplay() {
+            const minutes = Math.floor(currencyRefreshCountdown / 60);
+            const seconds = currencyRefreshCountdown % 60;
+            document.getElementById('currency-refresh-countdown').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // 刷新币种数据
+        async function refreshCurrencies() {
+            addLog("开始刷新币种列表数据...");
+            try {
+                await fetchTradingPairs();
+                await updateCurrencyData();
+                currencyRefreshCountdown = CURRENCY_REFRESH_MINUTES * 60;
+                updateCurrencyRefreshDisplay();
+                addLog("币种列表数据刷新完成");
+            } catch (error) {
+                addLog(`币种列表数据刷新失败: ${error.message}`);
+            }
+        }
+
+        // 更新币种数据（不重启程序）
+        async function updateCurrencyData() {
+            try {
+                addLog("开始更新币种价格数据...");
+                
+                // 调用币安API
+                const response = await fetch('https://www.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/cex/alpha/all/token/list');
+                
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // 检查API返回的数据结构
+                if (!data.data || !Array.isArray(data.data)) {
+                    throw new Error('API返回的数据格式不正确');
+                }
+                
+                // 处理数据 - 只保留有交易对的币种
+                const newCurrencies = data.data
+                    .filter(item => {
+                        // 只保留有交易对的币种
+                        return tradingPairsData[item.alphaId] && tradingPairsData[item.alphaId].length > 0;
+                    })
+                    .map(item => {
+                        // 使用API返回的真实价格
+                        const price = item.price || "0.00000000000000";
+                        
+                        // 生成币种链接
+                        let currencyLink = "#";
+                        if (item.chainName && item.contractAddress) {
+                            const chainNameLower = item.chainName.toLowerCase();
+                            currencyLink = `https://www.binance.com/zh-CN/alpha/${chainNameLower}/${item.contractAddress}`;
+                        }
+                        
+                        // 获取交易对
+                        const tradingPairs = tradingPairsData[item.alphaId] || [];
+                        
+                        // 查找现有币种数据
+                        const existingCurrency = allCurrencies.find(c => c.alphaId === item.alphaId);
+                        
+                        return {
+                            symbol: item.symbol || 'N/A',
+                            alphaId: item.alphaId || 'N/A',
+                            price: price,
+                            currencyLink: currencyLink,
+                            tradingPairs: tradingPairs,
+                            oneMinChange: existingCurrency ? existingCurrency.oneMinChange : 0,
+                            threeMinChange: existingCurrency ? existingCurrency.threeMinChange : 0,
+                            threeMinChangeArrow: existingCurrency ? existingCurrency.threeMinChangeArrow : '',
+                            fifteenMinChange: existingCurrency ? existingCurrency.fifteenMinChange : 0,
+                            fifteenMinChangeArrow: existingCurrency ? existingCurrency.fifteenMinChangeArrow : '',
+                            tradeCount: existingCurrency ? existingCurrency.tradeCount : 0
+                        };
+                    });
+                
+                // 更新币种列表
+                allCurrencies = newCurrencies;
+                
+                // 更新价格历史记录中的新币种
+                newCurrencies.forEach(currency => {
+                    if (!priceHistory[currency.alphaId]) {
+                        priceHistory[currency.alphaId] = {
+                            timestamps: [Date.now()],
+                            prices: [parseFloat(currency.price)]
+                        };
+                    }
+                });
+                
+                // 更新15分钟价格记录中的新币种
+                newCurrencies.forEach(currency => {
+                    if (!fifteenMinuteHistory[currency.alphaId]) {
+                        fifteenMinuteHistory[currency.alphaId] = {
+                            timestamp: Date.now(),
+                            price: parseFloat(currency.price)
+                        };
+                    }
+                });
+                
+                // 更新统计数据
+                updateStats();
+                
+                addLog(`币种数据更新成功，共${allCurrencies.length}个有交易对的币种`);
+                
+            } catch (error) {
+                addLog(`币种数据更新失败: ${error.message}`);
+                throw error;
+            }
+        }
+
+        // 添加日志函数（最新的日志显示在最上面）
+        function addLog(message) {
+            const logContent = document.getElementById('log-content');
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `<span class="log-time">[${timeString}]</span> ${message}`;
+            
+            // 插入到最前面
+            if (logContent.firstChild) {
+                logContent.insertBefore(logEntry, logContent.firstChild);
+            } else {
+                logContent.appendChild(logEntry);
+            }
+            
+            // 限制日志数量，最多保留50条
+            while (logContent.children.length > 50) {
+                logContent.removeChild(logContent.lastChild);
+            }
+            
+            console.log(`[${timeString}] ${message}`);
+        }
+        
+        // 初始化数据
+        async function initializeData() {
+            addLog("开始初始化币种数据...");
+            
+            // 显示加载状态
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('currency-content').style.display = 'none';
+            document.getElementById('ranking-content').style.display = 'none';
+            
+            try {
+                await fetchData();
+            } catch (error) {
+                // 显示错误信息
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error-message').textContent = error.message;
+                addLog(`数据加载失败: ${error.message}`);
+                console.error('数据加载失败:', error);
+            }
+        }
+        
+        // 获取交易对数据
+        async function fetchTradingPairs() {
+            addLog("开始获取交易对数据...");
+            
+            let success = false;
+            let retryCount = 0;
+            
+            while (!success) {
+                try {
+                    retryCount++;
+                    if (retryCount > 1) {
+                        addLog(`第${retryCount}次尝试获取交易对数据...`);
+                    }
+                    
+                    const response = await fetch('https://www.binance.com/bapi/defi/v1/public/alpha-trade/get-exchange-info');
+                    
+                    if (!response.ok) {
+                        throw new Error(`交易对API请求失败: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (!data.data || !Array.isArray(data.data.symbols)) {
+                        throw new Error('交易对API返回的数据格式不正确');
+                    }
+                    
+                    // 处理交易对数据
+                    tradingPairsData = {};
+                    data.data.symbols.forEach(symbol => {
+                        if (symbol.status === 'TRADING' && symbol.baseAsset) {
+                            const baseAsset = symbol.baseAsset;
+                            if (!tradingPairsData[baseAsset]) {
+                                tradingPairsData[baseAsset] = [];
+                            }
+                            tradingPairsData[baseAsset].push(symbol.symbol);
+                        }
+                    });
+                    
+                    success = true;
+                    addLog(`交易对数据加载成功，有交易对的币种数量: ${Object.keys(tradingPairsData).length}`);
+                    
+                } catch (error) {
+                    addLog(`获取交易对数据失败: ${error.message}`);
+                    console.error('获取交易对数据失败:', error);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+        }
+        
+        // 获取数据（无限重试直到成功）
+        async function fetchData() {
+            // 先获取交易对数据
+            await fetchTradingPairs();
+            
+            let success = false;
+            
+            while (!success) {
+                try {
+                    addLog("开始获取币种价格数据...");
+                    
+                    // 调用币安API
+                    const response = await fetch('https://www.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/cex/alpha/all/token/list');
+                    
+                    if (!response.ok) {
+                        throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // 检查API返回的数据结构
+                    if (!data.data || !Array.isArray(data.data)) {
+                        throw new Error('API返回的数据格式不正确');
+                    }
+                    
+                    // 处理数据 - 只保留有交易对的币种
+                    allCurrencies = data.data
+                        .filter(item => {
+                            // 只保留有交易对的币种
+                            return tradingPairsData[item.alphaId] && tradingPairsData[item.alphaId].length > 0;
+                        })
+                        .map(item => {
+                            // 使用API返回的真实价格
+                            const price = item.price || "0.00000000000000";
+                            
+                            // 生成币种链接
+                            let currencyLink = "#";
+                            if (item.chainName && item.contractAddress) {
+                                const chainNameLower = item.chainName.toLowerCase();
+                                currencyLink = `https://www.binance.com/zh-CN/alpha/${chainNameLower}/${item.contractAddress}`;
+                            }
+                            
+                            // 获取交易对
+                            const tradingPairs = tradingPairsData[item.alphaId] || [];
+                            
+                            return {
+                                symbol: item.symbol || 'N/A',
+                                alphaId: item.alphaId || 'N/A',
+                                price: price,
+                                currencyLink: currencyLink,
+                                tradingPairs: tradingPairs,
+                                oneMinChange: 0,
+                                threeMinChange: 0,
+                                threeMinChangeArrow: '',
+                                fifteenMinChange: 0,
+                                fifteenMinChangeArrow: '',
+                                tradeCount: 0 // 初始化成交笔数为0
+                            };
+                        });
+                    
+                    // 初始化价格历史记录
+                    initializePriceHistory();
+                    
+                    // 初始化15分钟价格记录
+                    initializeFifteenMinuteHistory();
+                    
+                    // 初始化涨幅变化记录
+                    initializeChangeHistory();
+                    
+                    // 更新显示
+                    updateStats();
+                    renderCurrencyTable();
+                    updateRankingTable();
+                    
+                    // 隐藏加载状态，显示内容
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('currency-content').style.display = 'block';
+                    document.getElementById('ranking-content').style.display = 'block';
+                    
+                    // 更新页面时间
+                    updateTime();
+                    
+                    // 更新API状态
+                    updateApiStatus(true);
+                    apiRetryCount = 0;
+                    
+                    addLog(`币种数据加载成功，共${allCurrencies.length}个有交易对的币种`);
+                    success = true;
+                    
+                } catch (error) {
+                    apiRetryCount++;
+                    const displayCount = Math.min(apiRetryCount, MAX_RETRY_DISPLAY);
+                    
+                    // 更新API状态
+                    updateApiStatus(false, `API连接失败，重试中... (${displayCount}${apiRetryCount > MAX_RETRY_DISPLAY ? '+' : ''})`);
+                    
+                    addLog(`API请求失败，第${apiRetryCount}次重试: ${error.message}`);
+                    console.error(`API请求失败，第${apiRetryCount}次重试:`, error);
+                    
+                    // 等待2秒后重试
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+        }
+        
+        // 初始化涨幅变化记录
+        function initializeChangeHistory() {
+            previousThreeMinChanges = {};
+            previousFifteenMinChanges = {};
+            
+            allCurrencies.forEach(currency => {
+                previousThreeMinChanges[currency.alphaId] = currency.threeMinChange;
+                previousFifteenMinChanges[currency.alphaId] = currency.fifteenMinChange;
+            });
+        }
+        
+        // 更新箭头指示 - 修改为新的箭头样式
+        function updateChangeArrows() {
+            allCurrencies.forEach(currency => {
+                // 更新3分钟涨幅箭头 - 使用新的CSS类
+                const prevThreeMin = previousThreeMinChanges[currency.alphaId] || 0;
+                if (currency.threeMinChange > prevThreeMin) {
+                    currency.threeMinChangeArrow = '<i class="fas fa-arrow-up change-indicator up"></i>';
+                } else if (currency.threeMinChange < prevThreeMin) {
+                    currency.threeMinChangeArrow = '<i class="fas fa-arrow-down change-indicator down"></i>';
+                } else {
+                    currency.threeMinChangeArrow = '';
+                }
+                
+                // 更新15分钟涨幅箭头 - 使用新的CSS类
+                const prevFifteenMin = previousFifteenMinChanges[currency.alphaId] || 0;
+                if (currency.fifteenMinChange > prevFifteenMin) {
+                    currency.fifteenMinChangeArrow = '<i class="fas fa-arrow-up change-indicator up"></i>';
+                } else if (currency.fifteenMinChange < prevFifteenMin) {
+                    currency.fifteenMinChangeArrow = '<i class="fas fa-arrow-down change-indicator down"></i>';
+                } else {
+                    currency.fifteenMinChangeArrow = '';
+                }
+                
+                // 更新历史记录
+                previousThreeMinChanges[currency.alphaId] = currency.threeMinChange;
+                previousFifteenMinChanges[currency.alphaId] = currency.fifteenMinChange;
+            });
+        }
+        
+        // 初始化15分钟价格历史记录
+        function initializeFifteenMinuteHistory() {
+            const now = Date.now();
+            fifteenMinuteHistory = {};
+            
+            allCurrencies.forEach(currency => {
+                fifteenMinuteHistory[currency.alphaId] = {
+                    timestamp: now,
+                    price: parseFloat(currency.price)
+                };
+            });
+        }
+        
+        // 更新15分钟价格历史记录
+        function updateFifteenMinuteHistory() {
+            const now = Date.now();
+            const fifteenMinutesAgo = now - RANKING_WINDOW_MINUTES * 60 * 1000;
+            
+            // 检查是否需要更新15分钟前的价格
+            let needsUpdate = false;
+            for (const alphaId in fifteenMinuteHistory) {
+                if (fifteenMinuteHistory[alphaId].timestamp <= fifteenMinutesAgo) {
+                    needsUpdate = true;
+                    break;
+                }
+            }
+            
+            if (needsUpdate) {
+                // 更新所有币种的15分钟前价格
+                allCurrencies.forEach(currency => {
+                    if (priceHistory[currency.alphaId] && priceHistory[currency.alphaId].timestamps.length > 0) {
+                        // 查找15分钟前的价格
+                        let fifteenMinPrice = null;
+                        for (let i = priceHistory[currency.alphaId].timestamps.length - 1; i >= 0; i--) {
+                            if (priceHistory[currency.alphaId].timestamps[i] <= fifteenMinutesAgo) {
+                                fifteenMinPrice = priceHistory[currency.alphaId].prices[i];
+                                break;
+                            }
+                        }
+                        
+                        if (fifteenMinPrice !== null) {
+                            fifteenMinuteHistory[currency.alphaId] = {
+                                timestamp: fifteenMinutesAgo,
+                                price: fifteenMinPrice
+                            };
+                        }
+                    }
+                });
+            }
+        }
+        
+        // 计算15分钟涨跌幅
+        function calculateFifteenMinuteChanges() {
+            const now = Date.now();
+            
+            allCurrencies.forEach(currency => {
+                if (fifteenMinuteHistory[currency.alphaId]) {
+                    const fifteenMinPrice = fifteenMinuteHistory[currency.alphaId].price;
+                    const currentPrice = parseFloat(currency.price);
+                    
+                    if (fifteenMinPrice > 0) {
+                        currency.fifteenMinChange = ((currentPrice - fifteenMinPrice) / fifteenMinPrice) * 100;
+                    } else {
+                        currency.fifteenMinChange = 0;
+                    }
+                } else {
+                    currency.fifteenMinChange = 0;
+                }
+            });
+        }
+        
+        // 记录上榜历史
+        function recordRankingHistory() {
+            const now = Date.now();
+            const top20Currencies = allCurrencies.slice(0, TOP_RANK_COUNT);
+            
+            // 记录当前时间点的上榜币种
+            const rankingRecord = {
+                timestamp: now,
+                currencies: top20Currencies.map(currency => ({
+                    symbol: currency.symbol,
+                    alphaId: currency.alphaId,
+                    currencyLink: currency.currencyLink,
+                    tradeCount: currency.tradeCount
+                }))
+            };
+            
+            rankingHistory.push(rankingRecord);
+            
+            // 清理超过15分钟的历史记录
+            const retentionTime = now - RANKING_WINDOW_MINUTES * 60 * 1000;
+            rankingHistory = rankingHistory.filter(record => record.timestamp >= retentionTime);
+            
+            // 保存状态到localStorage
+            saveStateToStorage();
+        }
+        
+        // 计算上榜统计
+        function calculateRankingStats() {
+            const now = Date.now();
+            const retentionTime = now - RANKING_WINDOW_MINUTES * 60 * 1000;
+            
+            // 统计每个币种的上榜次数和成交笔数总和
+            const rankingStats = {};
+            
+            // 初始化所有有交易对的币种
+            allCurrencies.forEach(currency => {
+                rankingStats[currency.alphaId] = {
+                    symbol: currency.symbol,
+                    currencyLink: currency.currencyLink,
+                    fifteenMinChange: currency.fifteenMinChange,
+                    fifteenMinChangeArrow: currency.fifteenMinChangeArrow,
+                    appearanceCount: 0,
+                    totalTradeCount: 0
+                };
+            });
+            
+            // 统计上榜记录
+            rankingHistory.forEach(record => {
+                record.currencies.forEach(currency => {
+                    if (rankingStats[currency.alphaId]) {
+                        rankingStats[currency.alphaId].appearanceCount++;
+                        rankingStats[currency.alphaId].totalTradeCount += currency.tradeCount;
+                    }
+                });
+            });
+            
+            return Object.values(rankingStats)
+                .filter(stat => stat.appearanceCount > 0)
+                .sort((a, b) => b.appearanceCount - a.appearanceCount)
+                .slice(0, TOP_RANK_COUNT);
+        }
+        
+        // 获取前20名币种的成交笔数数据（无限重试）
+        async function fetchTradeCounts() {
+            const startTime = Date.now();
+            addLog("开始获取前20名币种的成交笔数数据...");
+            
+            const top20Currencies = allCurrencies.slice(0, TOP_RANK_COUNT);
+            const failedCurrencies = [];
+            
+            // 为每个币种的所有交易对获取成交笔数
+            for (const currency of top20Currencies) {
+                try {
+                    let totalTradeCount = 0;
+                    
+                    // 为每个交易对获取数据
+                    for (const tradingPair of currency.tradingPairs) {
+                        addLog(`获取交易对 ${tradingPair} 的成交笔数数据...`);
+                        
+                        const response = await fetch(`https://www.binance.com/bapi/defi/v1/public/alpha-trade/klines?interval=15s&limit=5&symbol=${tradingPair}`);
+                        
+                        if (!response.ok) {
+                            throw new Error(`成交笔数API请求失败: ${response.status} ${response.statusText}`);
+                        }
+                        
+                        const data = await response.json();
+                        
+                        if (data.code !== "000000" || !data.success) {
+                            throw new Error(`API返回错误: ${data.message || data.messageDetail}`);
+                        }
+                        
+                        if (!data.data || !Array.isArray(data.data)) {
+                            throw new Error('成交笔数API返回的数据格式不正确');
+                        }
+                        
+                        // 计算5条K线数据的成交笔数总和
+                        let pairTradeCount = 0;
+                        for (const kline of data.data) {
+                            const tradeCount = parseInt(kline[8]); // 第9个字段是成交笔数
+                            if (!isNaN(tradeCount)) {
+                                pairTradeCount += tradeCount;
+                            }
+                        }
+                        
+                        totalTradeCount += pairTradeCount;
+                        addLog(`交易对 ${tradingPair} 5条K线成交笔数总和: ${pairTradeCount}`);
+                    }
+                    
+                    currency.tradeCount = totalTradeCount;
+                    addLog(`币种 ${currency.symbol} 总成交笔数: ${totalTradeCount}`);
+                    
+                } catch (error) {
+                    addLog(`获取币种 ${currency.symbol} 成交笔数失败: ${error.message}`);
+                    failedCurrencies.push(currency);
+                }
+            }
+            
+            // 无限重试失败的币种
+            if (failedCurrencies.length > 0) {
+                addLog(`有${failedCurrencies.length}个币种的数据获取失败，开始无限重试...`);
+                await retryFailedTradeCounts(failedCurrencies);
+            }
+            
+            const endTime = Date.now();
+            const duration = (endTime - startTime) / 1000;
+            addLog(`前20名币种成交笔数数据获取完成，总耗时: ${duration.toFixed(2)}秒`);
+            
+            return duration;
+        }
+        
+        // 无限重试失败的成交笔数获取
+        async function retryFailedTradeCounts(failedCurrencies) {
+            let retryCount = 0;
+            
+            while (failedCurrencies.length > 0) {
+                retryCount++;
+                addLog(`第${retryCount}次重试失败的币种数据...`);
+                
+                const stillFailed = [];
+                
+                for (const currency of failedCurrencies) {
+                    try {
+                        let totalTradeCount = 0;
+                        
+                        for (const tradingPair of currency.tradingPairs) {
+                            const response = await fetch(`https://www.binance.com/bapi/defi/v1/public/alpha-trade/klines?interval=15s&limit=5&symbol=${tradingPair}`);
+                            
+                            if (!response.ok) {
+                                throw new Error(`成交笔数API请求失败: ${response.status} ${response.statusText}`);
+                            }
+                            
+                            const data = await response.json();
+                            
+                            if (data.code !== "000000" || !data.success) {
+                                throw new Error(`API返回错误: ${data.message || data.messageDetail}`);
+                            }
+                            
+                            if (!data.data || !Array.isArray(data.data)) {
+                                throw new Error('成交笔数API返回的数据格式不正确');
+                            }
+                            
+                            // 计算5条K线数据的成交笔数总和
+                            let pairTradeCount = 0;
+                            for (const kline of data.data) {
+                                const tradeCount = parseInt(kline[8]);
+                                if (!isNaN(tradeCount)) {
+                                    pairTradeCount += tradeCount;
+                                }
+                            }
+                            
+                            totalTradeCount += pairTradeCount;
+                        }
+                        
+                        currency.tradeCount = totalTradeCount;
+                        addLog(`重试成功: 币种 ${currency.symbol} 总成交笔数: ${totalTradeCount}`);
+                        
+                    } catch (error) {
+                        addLog(`重试失败: 币种 ${currency.symbol} - ${error.message}`);
+                        stillFailed.push(currency);
+                    }
+                }
+                
+                failedCurrencies = stillFailed;
+                
+                if (failedCurrencies.length > 0) {
+                    addLog(`等待2秒后继续重试...`);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+            
+            addLog(`所有币种的成交笔数数据获取成功`);
+        }
+        
+        // 更新API状态显示
+        function updateApiStatus(connected, message = '') {
+            const apiStatusDot = document.getElementById('api-status-dot');
+            const apiStatusText = document.getElementById('api-status-text');
+            
+            if (connected) {
+                apiStatusDot.className = 'api-status-dot connected';
+                apiStatusText.textContent = 'API状态: 已连接';
+                apiStatusText.style.color = '#2e7d32';
+            } else {
+                apiStatusDot.className = 'api-status-dot';
+                apiStatusText.textContent = message || 'API状态: 连接失败';
+                apiStatusText.style.color = '#c62828';
+            }
+        }
+        
+        // 初始化价格历史记录
+        function initializePriceHistory() {
+            priceHistory = {};
+            const now = Date.now();
+            
+            allCurrencies.forEach(currency => {
+                priceHistory[currency.alphaId] = {
+                    timestamps: [now],
+                    prices: [parseFloat(currency.price)]
+                };
+            });
+        }
+        
+        // 开始监控
+        function startMonitoring() {
+            if (isMonitoring) return;
+            
+            isMonitoring = true;
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('stop-btn').disabled = false;
+            document.querySelector('.status-dot').classList.add('active');
+            document.getElementById('status-text').textContent = '监控运行中';
+            
+            addLog("开始实时监控...");
+            
+            // 立即更新一次数据
+            updatePrices();
+        }
+        
+        // 停止监控
+        function stopMonitoring() {
+            if (!isMonitoring) return;
+            
+            isMonitoring = false;
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('stop-btn').disabled = true;
+            document.querySelector('.status-dot').classList.remove('active');
+            document.getElementById('status-text').textContent = '监控已停止';
+            
+            clearInterval(monitoringInterval);
+            addLog("停止实时监控");
+            
+            // 保存状态
+            saveStateToStorage();
+        }
+        
+        // 更新价格数据
+        async function updatePrices() {
+            if (!isMonitoring) return;
+            
+            try {
+                const cycleStartTime = Date.now();
+                addLog("开始更新价格数据...");
+                
+                // 调用API获取最新数据
+                const response = await fetch('https://www.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/cex/alpha/all/token/list');
+                
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // 检查API返回的数据结构
+                if (!data.data || !Array.isArray(data.data)) {
+                    throw new Error('API返回的数据格式不正确');
+                }
+                
+                const now = Date.now();
+                
+                // 更新币种价格 - 只更新有交易对的币种
+                data.data.forEach(apiCurrency => {
+                    // 只处理有交易对的币种
+                    if (!tradingPairsData[apiCurrency.alphaId] || tradingPairsData[apiCurrency.alphaId].length === 0) {
+                        return;
+                    }
+                    
+                    const existingCurrency = allCurrencies.find(c => c.alphaId === apiCurrency.alphaId);
+                    
+                    if (existingCurrency) {
+                        const newPrice = apiCurrency.price || existingCurrency.price;
+                        
+                        // 更新当前价格
+                        existingCurrency.price = newPrice;
+                        
+                        // 记录价格历史（使用ID作为键）
+                        if (!priceHistory[existingCurrency.alphaId]) {
+                            priceHistory[existingCurrency.alphaId] = {
+                                timestamps: [],
+                                prices: []
+                            };
+                        }
+                        
+                        // 添加新价格数据
+                        priceHistory[existingCurrency.alphaId].timestamps.push(now);
+                        priceHistory[existingCurrency.alphaId].prices.push(parseFloat(newPrice));
+                        
+                        // 清理超过30分钟的历史数据
+                        const retentionTime = now - DATA_RETENTION_MINUTES * 60 * 1000;
+                        const validIndices = [];
+                        
+                        for (let i = 0; i < priceHistory[existingCurrency.alphaId].timestamps.length; i++) {
+                            if (priceHistory[existingCurrency.alphaId].timestamps[i] >= retentionTime) {
+                                validIndices.push(i);
+                            }
+                        }
+                        
+                        if (validIndices.length > 0) {
+                            priceHistory[existingCurrency.alphaId].timestamps = validIndices.map(i => priceHistory[existingCurrency.alphaId].timestamps[i]);
+                            priceHistory[existingCurrency.alphaId].prices = validIndices.map(i => priceHistory[existingCurrency.alphaId].prices[i]);
+                        }
+                        
+                        // 计算1分钟和3分钟涨幅
+                        calculatePriceChanges(existingCurrency);
+                    }
+                });
+                
+                // 按3分钟涨幅降序排列
+                allCurrencies.sort((a, b) => b.threeMinChange - a.threeMinChange);
+                
+                addLog("价格数据更新完成，开始获取前20名成交笔数...");
+                
+                // 获取前20名币种的成交笔数（无限重试直到全部成功）
+                const tradeCountDuration = await fetchTradeCounts();
+                
+                // 更新15分钟价格历史
+                updateFifteenMinuteHistory();
+                
+                // 计算15分钟涨跌幅
+                calculateFifteenMinuteChanges();
+                
+                // 更新箭头指示 - 使用新的箭头样式
+                updateChangeArrows();
+                
+                // 记录上榜历史
+                recordRankingHistory();
+                
+                // 更新显示
+                renderCurrencyTable();
+                updateRankingTable();
+                updateTime();
+                updateApiStatus(true);
+                apiRetryCount = 0;
+                
+                const cycleEndTime = Date.now();
+                const totalCycleDuration = (cycleEndTime - cycleStartTime) / 1000;
+                
+                addLog(`本轮数据更新完成，总耗时: ${totalCycleDuration.toFixed(2)}秒 (价格更新: ${(totalCycleDuration - tradeCountDuration).toFixed(2)}秒, 成交笔数: ${tradeCountDuration.toFixed(2)}秒)`);
+                
+                // 设置下一轮更新（确保前20名都获取完成交笔数后再开始下一轮）
+                if (isMonitoring) {
+                    monitoringInterval = setTimeout(updatePrices, 5000);
+                }
+                
+            } catch (error) {
+                console.error('更新价格数据失败:', error);
+                apiRetryCount++;
+                const displayCount = Math.min(apiRetryCount, MAX_RETRY_DISPLAY);
+                updateApiStatus(false, `API连接失败，重试中... (${displayCount}${apiRetryCount > MAX_RETRY_DISPLAY ? '+' : ''})`);
+                
+                addLog(`更新价格数据失败: ${error.message}`);
+                
+                // 无限重试，等待2秒后再次尝试
+                if (isMonitoring) {
+                    setTimeout(updatePrices, 2000);
+                }
+            }
+        }
+        
+        // 计算价格变化
+        function calculatePriceChanges(currency) {
+            const now = Date.now();
+            const oneMinuteAgo = now - 60 * 1000;
+            const threeMinutesAgo = now - 3 * 60 * 1000;
+            const currentPrice = parseFloat(currency.price);
+            
+            let oneMinPrice = null;
+            let threeMinPrice = null;
+            
+            // 查找1分钟前的价格
+            if (priceHistory[currency.alphaId]) {
+                for (let i = priceHistory[currency.alphaId].timestamps.length - 1; i >= 0; i--) {
+                    if (priceHistory[currency.alphaId].timestamps[i] <= oneMinuteAgo) {
+                        oneMinPrice = priceHistory[currency.alphaId].prices[i];
+                        break;
+                    }
+                }
+            }
+            
+            // 查找3分钟前的价格
+            if (priceHistory[currency.alphaId]) {
+                for (let i = priceHistory[currency.alphaId].timestamps.length - 1; i >= 0; i--) {
+                    if (priceHistory[currency.alphaId].timestamps[i] <= threeMinutesAgo) {
+                        threeMinPrice = priceHistory[currency.alphaId].prices[i];
+                        break;
+                    }
+                }
+            }
+            
+            // 计算涨幅百分比
+            if (oneMinPrice !== null && oneMinPrice > 0) {
+                currency.oneMinChange = ((currentPrice - oneMinPrice) / oneMinPrice) * 100;
+            } else {
+                currency.oneMinChange = 0;
+            }
+            
+            if (threeMinPrice !== null && threeMinPrice > 0) {
+                currency.threeMinChange = ((currentPrice - threeMinPrice) / threeMinPrice) * 100;
+            } else {
+                currency.threeMinChange = 0;
+            }
+        }
+        
+        // 更新统计数据
+        function updateStats() {
+            document.getElementById('trading-pairs-count').textContent = allCurrencies.length;
+        }
+        
+        // 渲染币种表格（只显示前20名）
+        function renderCurrencyTable() {
+            const tableBody = document.getElementById('currency-table-body');
+            
+            // 清空表格
+            tableBody.innerHTML = '';
+            
+            // 只显示前20名
+            const top20Currencies = allCurrencies.slice(0, TOP_RANK_COUNT);
+            
+            // 填充表格数据
+            top20Currencies.forEach((currency, index) => {
+                const row = document.createElement('tr');
+                
+                const oneMinClass = currency.oneMinChange >= 0 ? 'positive' : 'negative';
+                const threeMinClass = currency.threeMinChange >= 0 ? 'positive' : 'negative';
+                
+                const oneMinSign = currency.oneMinChange >= 0 ? '+' : '';
+                const threeMinSign = currency.threeMinChange >= 0 ? '+' : '';
+                
+                // 创建币种名称链接
+                const symbolLink = currency.currencyLink !== '#' ? 
+                    `<a href="${currency.currencyLink}" target="_blank" class="currency-link">${currency.symbol}</a>` : 
+                    currency.symbol;
+                
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${symbolLink}</td>
+                    <td>${parseFloat(currency.price).toFixed(14)}</td>
+                    <td class="${oneMinClass}">${oneMinSign}${currency.oneMinChange.toFixed(4)}%</td>
+                    <td class="${threeMinClass}">${threeMinSign}${currency.threeMinChange.toFixed(4)}%${currency.threeMinChangeArrow}</td>
+                    <td>${currency.tradeCount}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // 更新上榜统计表格
+        function updateRankingTable() {
+            const tableBody = document.getElementById('ranking-table-body');
+            const rankingStats = calculateRankingStats();
+            
+            // 清空表格
+            tableBody.innerHTML = '';
+            
+            // 填充表格数据
+            rankingStats.forEach((stat, index) => {
+                const row = document.createElement('tr');
+                
+                const fifteenMinClass = stat.fifteenMinChange >= 0 ? 'positive' : 'negative';
+                const fifteenMinSign = stat.fifteenMinChange >= 0 ? '+' : '';
+                
+                // 创建币种名称链接
+                const symbolLink = stat.currencyLink !== '#' ? 
+                    `<a href="${stat.currencyLink}" target="_blank" class="currency-link">${stat.symbol}</a>` : 
+                    stat.symbol;
+                
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${symbolLink}</td>
+                    <td class="${fifteenMinClass}">${fifteenMinSign}${stat.fifteenMinChange.toFixed(4)}%${stat.fifteenMinChangeArrow}</td>
+                    <td>${stat.appearanceCount}</td>
+                    <td>${stat.totalTradeCount}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // 更新统计时间
+            const now = new Date();
+            document.getElementById('ranking-update-time').textContent = now.toLocaleString();
+        }
+        
+        // 更新时间显示
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('update-time').textContent = now.toLocaleString();
+        }
+    </script>
+</body>
+</html>
